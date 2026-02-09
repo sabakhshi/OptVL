@@ -222,16 +222,17 @@ class OVLSolver(object):
     ad_suffix = "_DIFF"
 
     # Primary array limits: These also need to updated in the Fortran layer if changed
-    NSMAX = 400  # number of chord strips
-    NFMAX = 30  # number of surfaces
-    NLMAX = 500  # number of source/doublet line nodes
+    NSMAX = 500  # number of chord strips
+    NSECMAX = 301 # nuber of geometry sections
+    NFMAX = 100  # number of surfaces
+    NLMAX = 502  # number of source/doublet line nodes
     NBMAX = 20  # number of bodies
     NUMAX = 6  # number of freestream parameters (V,Omega)
     NDMAX = 30  # number of control deflection parameters
-    NGMAX = 20  # number of design variables
+    NGMAX = 21  # number of design variables
     NRMAX = 25  # number of stored run cases
-    NTMAX = 5000  # number of stored time levels
-    IBX = 300
+    NTMAX = 503  # number of stored time levels
+    IBX = 200
     ICONX = 20
 
     if platform.system == "Windows":
@@ -793,14 +794,14 @@ class OVLSolver(object):
                 # This is automatically done by the pre-check routine
                 num_secs = surf_dict["num_sections"]
 
-                # Check how many strip/sections we have defined so far and that it doesn't exceed NSMAX
+                # Check how many strip/sections we have defined so far and that it doesn't exceed NSECMAX
                 cur_secs = np.sum(self.get_avl_fort_arr("SURF_GEOM_I","NSEC"))
-                if cur_secs + num_secs < self.NSMAX:
+                if cur_secs + num_secs < self.NSECMAX:
                     # Set total number of sections in one shot
                     self.set_avl_fort_arr("SURF_GEOM_I", "NSEC", num_secs, slicer=idx_surf)
                 else:
                     raise RuntimeError(
-                        f"Number of specified sections/strips exceeds {self.NSMAX}. Raise NSMAX!"
+                        f"Number of specified sections/strips exceeds {self.NSECMAX}. Raise NSECMAX!"
                     )
 
                 # Set the number of control and design variables for the surface
