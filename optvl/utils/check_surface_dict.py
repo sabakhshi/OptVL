@@ -129,7 +129,7 @@ def pre_check_input_dict(input_dict: dict):
         "use surface spacing",  # surface spacing set under the surface heeading (known as LSURFSPACING in AVL)
         # Geometery: Mesh
         "mesh",
-        "flatten_mesh",
+        "flatten mesh",
         # Control Surfaces
         "control_assignments",
         "icontd",  # control variable index
@@ -256,7 +256,7 @@ def pre_check_input_dict(input_dict: dict):
                     raise RuntimeError("Must have at least two sections per surface!")
 
                 # Read and process the controls dictionary
-                if "control_assignments" in input_dict["surfaces"][surface]:
+                if "control_assignments" in input_dict["surfaces"][surface] and "num_controls" not in input_dict["surfaces"][surface]:
                     num_controls_per_sec = np.zeros(input_dict["surfaces"][surface]["num_sections"],dtype=np.int32)
 
                     for control in input_dict["surfaces"][surface]["control_assignments"]:
@@ -293,7 +293,7 @@ def pre_check_input_dict(input_dict: dict):
                     input_dict["surfaces"][surface]["num_controls"] = np.zeros(input_dict["surfaces"][surface]["num_sections"],dtype=np.int32)
 
                  # Read and process the design variables dictionary
-                if "design_var_assignments" in input_dict["surfaces"][surface]:
+                if "design_var_assignments" in input_dict["surfaces"][surface] and "num_design_vars" not in input_dict["surfaces"][surface]:
                     num_design_vars_per_sec = np.zeros(input_dict["surfaces"][surface]["num_sections"],dtype=np.int32)
 
                     for design_var in input_dict["surfaces"][surface]["design_var_assignments"]:
