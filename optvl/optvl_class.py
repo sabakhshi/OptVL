@@ -416,6 +416,7 @@ class OVLSolver(object):
     def _init_map_data(self):
         """Used in the __init__ method to allocate the slice data for the surfaces"""
         self.surf_geom_to_fort_var = {}
+        self.surf_mesh_to_fort_var = {}
         self.surf_section_geom_to_fort_var = {}
         self.surf_pannel_to_fort_var = {}
         self.con_surf_to_fort_var = {}
@@ -498,6 +499,15 @@ class OVLSolver(object):
             "albe": ["SURF_L", "LFALBE", slice_idx_surf],
             "load": ["SURF_L", "LFLOAD", slice_idx_surf],
         }
+
+        if self.get_avl_fort_arr("SURF_MESH_L", "LSURFMSH", slicer=slice_idx_surf):
+            nvc = self.get_avl_fort_arr("SURF_GEOM_I", "NVC", slicer=slice_idx_surf)
+            nvs = self.get_avl_fort_arr("SURF_GEOM_I", "NVS", slicer=slice_idx_surf)
+            mesh_size = ((nvc+1)*(nvs+1))
+            slice_mesh_surf = (slice(self.mesh_idx_first[idx_surf],self.mesh_idx_first[idx_surf]+mesh_size),slice(None))
+            self.surf_mesh_to_fort_var[surf_name] = {
+                "mesh": ["SURF_MESH_R", "MSHBLK", slice_mesh_surf]
+            }
 
         icontd_slices = []
         idestd_slices = []
@@ -3474,6 +3484,35 @@ class OVLSolver(object):
                 # print(blk, var, val, slicer)
                 self.set_avl_fort_arr(blk, var, val, slicer=slicer)
 
+    def get_mesh_seeds(self) -> Dict[str, Dict[str, float]]:
+        mesh_seeds = {}
+        for surf_key in self.unique_surface_names:
+            mesh_seeds[surf_key] = {}
+            for mesh_key in self.surf_mesh_to_fort_var[surf_key]:
+                blk, var, slicer = self.surf_mesh_to_fort_var[surf_key][mesh_key]
+
+                blk += self.ad_suffix
+                var += self.ad_suffix
+
+                mesh_seeds[surf_key][mesh_key] = copy.deepcopy(self.get_avl_fort_arr(blk, var, slicer=slicer))
+
+        return mesh_seeds
+
+    def set_mesh_seeds(self, mesh_seeds: Dict[str, float], mode: str = "AD", scale=1.0) -> None:
+        for surf_key in mesh_seeds:
+            for mesh_key in mesh_seeds[surf_key]:
+                blk, var, slicer = self.surf_mesh_to_fort_var[surf_key][mesh_key]
+
+                if mode == "AD":
+                    blk += self.ad_suffix
+                    var += self.ad_suffix
+                    val = mesh_seeds[surf_key][mesh_key] * scale
+                elif mode == "FD":
+                    val = self.get_avl_fort_arr(blk, var, slicer=slicer)
+                    val += mesh_seeds[surf_key][mesh_key] * scale
+                # print(blk, var, val, slicer)
+                self.set_avl_fort_arr(blk, var, val, slicer=slicer)
+
     # --- state ad seeds ---
     def get_gamma_ad_seeds(self) -> np.ndarray:
         slicer = (slice(0, self.get_mesh_size()),)
@@ -3712,6 +3751,15 @@ class OVLSolver(object):
         num_airfoil_pts_max = self.get_avl_fort_arr("SURF_GEOM_R", "XLASEC").shape[-1]
         num_airfoil_pts = np.max(self.get_avl_fort_arr("SURF_GEOM_I", "NASEC"))
 
+        mesh_size_max = 4*num_vor_max
+        mesh_surf = np.trim_zeros(self.get_avl_fort_arr("SURF_MESH_L", "LSURFMSH"))
+        mesh_size = 0
+        for i, is_mesh in enumerate(mesh_surf):
+            if is_mesh == 1:
+                nvc = self.get_avl_fort_arr("SURF_GEOM_I", "NVC", slicer=i)
+                nvs = self.get_avl_fort_arr("SURF_GEOM_I", "NVS", slicer=i)
+                mesh_size += (nvc+1)*(nvs+1)
+
         # import psutil
         # process = psutil.Process()
         # mem_before = process.memory_info().rss
@@ -3742,6 +3790,9 @@ class OVLSolver(object):
 
                             if dim_size == num_airfoil_pts_max:
                                 dim_size = num_airfoil_pts
+
+                            if dim_size == mesh_size_max:
+                                dim_size = mesh_size
 
                             slices.append(slice(0, dim_size))
                         slicer = tuple(slices)
