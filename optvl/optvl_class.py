@@ -222,6 +222,7 @@ class OVLSolver(object):
     ad_suffix = "_DIFF"
 
     # Primary array limits: These also need to updated in the Fortran layer if changed
+    NVMAX = 5000  # number of horseshoe vortices
     NSMAX = 500  # number of chord strips
     NSECMAX = 301 # nuber of geometry sections
     NFMAX = 100  # number of surfaces
@@ -232,13 +233,10 @@ class OVLSolver(object):
     NGMAX = 21  # number of design variables
     NRMAX = 25  # number of stored run cases
     NTMAX = 503  # number of stored time levels
-    IBX = 200
-    ICONX = 20
+    NOBMAX=1 # max number of off body points
+    ICONX = 20  #
+    IBX = 200 # max number of airfoil coordinates
 
-    if platform.system == "Windows":
-        NVMAX = 5000  # number of horseshoe vortices
-    else:
-        NVMAX = 6000  # number of horseshoe vortices
 
     def __init__(
         self,
