@@ -266,6 +266,9 @@ c---- indices for forming cross-products
       DATA ICRS / 2, 3, 1 / , JCRS / 3, 1, 2 /
       
       REAL SINA, COSA, SINAINC, SR, ULMAG, UNITA
+
+      ! store dimensional forces
+      real rho, vee
 C
 C
       SINA = SIN(ALFA)
@@ -509,6 +512,12 @@ C
           FGAM(1) = 2.0*GAM(I)*F(1)
           FGAM(2) = 2.0*GAM(I)*F(2)
           FGAM(3) = 2.0*GAM(I)*F(3)
+          ! Store the dimensional force in each panel
+          rho = PARVAL(iprho,irun)
+          vee = PARVAL(ipvee,irun)
+          fgamv(1,i) = fgam(1)*0.5*rho*(vee**2.0)
+          fgamv(2,i) = fgam(2)*0.5*rho*(vee**2.0)
+          fgamv(3,i) = fgam(3)*0.5*rho*(vee**2.0)
 C$AD II-LOOP
           DO N = 1, NUMAX
             FGAM_U(1,N) = 2.0*GAM_U(I,N)*F(1) + 2.0*GAM(I)*F_U(1,N)

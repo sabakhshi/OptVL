@@ -5151,7 +5151,7 @@ class OVLSolver(object):
                 for j in range(mesh_x.shape[1]):
                     axis.plot(mesh_x[:, j], mesh_y[:, j],mesh_z[:, j], mesh_style, color=color, lw=mesh_linewidth, alpha=1.0)
 
-            
+
     def plot_geom_3d(self, axes=None, plot_avl_mesh = True, plot_direct_mesh = False):
         """Generates a plot of the VLM mesh on a 3d axis.
         By default the flat version of the mesh that satisfies AVL's VLM assumptions is plotted.
@@ -5296,3 +5296,80 @@ class OVLSolver(object):
 
         self.avl.cpoml(False)
         self.avl.write_tecplot(file_name + ".dat", add_time, solution_time)
+
+    def write_forces_file(self,file_name: str, surf=None):
+
+        mesh_size = self.get_mesh_size()
+        num_strips = self.get_num_strips()
+        num_surfs = self.get_num_surfaces()
+
+        mesh_slice = (slice(0, mesh_size),)
+        strip_slice = (slice(0, num_strips),)
+        surf_slice = (slice(0, num_surfs),)
+
+        nvstrp = self.get_avl_fort_arr("STRP_I", "NVSTRP", slicer=strip_slice)  # Number of elements in strip
+        nj = self.get_avl_fort_arr("SURF_I", "NJ", slicer=surf_slice)  # Number of elements along span in surface
+
+        forces = self.get_avl_fort_arr("VRTX_R", "FGAMV", slicer=mesh_slice) # force vector at each bound vortex
+
+        rv = self.get_avl_fort_arr("VRTX_R", "RV", slicer=mesh_slice) # Center point of each vortex
+
+        # Are we doing all surfaces or a particular one?
+        # if surf is not None:
+        #     num_vorticies = 
+        # else:
+
+        # In VLM we get the forces at the vortex midpoints not the mesh nodes
+        nPt = mesh_size
+
+        # as a result we need to create a dual "mesh" with the vortex center points being the mesh nodes
+        nCell = (nvstrp[0]-1)*(nj[0]-1)
+
+        # Now compute the connectivity of the dual mesh
+        # Assumes same number of elements in each strip
+        conn = np.zeros((nCell,4))
+        cell_count = 0
+        for j in range(nj[0]-1):
+            for i in range(nvstrp[0]-1):
+                conn[cell_count,0] = j*nvstrp[0] + i
+                conn[cell_count,1] = j*nvstrp[0] + i + 1
+                conn[cell_count,2] = (j+1)*nvstrp[0] + i
+                conn[cell_count,3] = (j+1)*nvstrp[0] + i + 1
+                cell_count += 1
+
+
+        # Open output file
+        f = open(file_name, "w")
+
+        # Write header with number of nodes and number of cells
+        f.write("%d %d\n" % (nPt, nCell))
+
+        # Write the forces
+        for i in range(nPt):
+            f.write(
+                "%15.8g %15.8g %15.8g "
+                % (np.real(rv[i, 0]), np.real(rv[i, 1]), np.real(rv[i, 2]))
+            )
+            f.write(
+                "%15.8g %15.8g %15.8g\n"
+                % (
+                    np.real(forces[i, 0]),
+                    np.real(forces[i, 1]),
+                    np.real(forces[i, 2]),
+                )
+            )
+
+        # Now write the connectivity
+        for i in range(conn.shape[0]):
+            f.write(
+                "%d %d %d %d\n"
+                % (
+                    conn[i, 0],
+                    conn[i, 1],
+                    conn[i, 2],
+                    conn[i, 3],
+                )
+            )
+
+        f.close()
+

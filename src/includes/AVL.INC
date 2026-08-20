@@ -667,6 +667,7 @@ C
       REAL(kind=avl_real) DCP_U
       REAL(kind=avl_real) DCP_D
       REAL(kind=avl_real) DCP_G
+      REAL(kind=avl_real) FGAMV
       REAL(kind=avl_real) GAM
       REAL(kind=avl_real) GAM_U_0
       REAL(kind=avl_real) GAM_U_D
@@ -714,6 +715,7 @@ C
      & DCP_U(NVMAX,NUMAX),
      & DCP_D(NVMAX,NDMAX),
      & DCP_G(NVMAX,NGMAX),
+     & FGAMV(3,NVMAX),           ! dimensional Kutta-Joukowski force vector on each bound vortex
      & GAM(NVMAX),               ! circulation of horseshoe vortex
      & GAM_U_0(NVMAX,NUMAX),
      & GAM_U_D(NVMAX,NUMAX,NDMAX),
